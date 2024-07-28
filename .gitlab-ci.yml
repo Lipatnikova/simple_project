@@ -1,0 +1,65 @@
+workflow:
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "push"'
+          when: never
+        - when: always
+
+variables:
+  BROWSERSTACK_USERNAME: ${BROWSERSTACK_USERNAME}
+  BROWSERSTACK_ACCESS_KEY: ${BROWSERSTACK_ACCESS_KEY}
+
+stages:
+    - test
+    - report
+
+
+run_tests:
+    stage: test
+    allow_failure: true
+    image: python
+    artifacts:
+        when: always
+        expire_in: 15 days
+#        paths:
+#            - allure-report/*
+    before_script:
+      - apt update && apt-get install -y curl
+      - apt update && apt install -y openjdk-17-jdk openjdk-17-jre
+      - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+      - nvm install 20
+      - nvm use 20
+      - node -v
+      - npm -v
+
+      - npm install -y -g appium
+      - appium --version
+      - npm install -y appium-doctor -g
+      - appium-doctor -h
+      - appium-doctor --android
+
+      - python3 -m venv myenv
+      - source myenv/bin/activate
+      - pip install --upgrade pip
+      - pip install -r requirements.txt
+    script:
+      - appium
+      - sleep 10
+      - browserstack-sdk pytest -s tests/test_main_scr.py
+#
+#    after_script:
+#    - source myenv/bin/activate && allure generate -c allure-results -o allure-report
+
+#pages:
+#    stage: report
+#    needs:
+#        - run_tests
+#    script:
+#        - mkdir public
+#        - cp -r allure-report/* public
+#    artifacts:
+#        when: on_success
+#        expire_in: never
+#        paths:
+#            - public/*
+
+
